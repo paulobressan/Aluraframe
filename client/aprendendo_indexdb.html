@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Aprendedno IndexDB</title>
+</head>
+<body>
+    <script src="js/app/models/Negociacao.js"></script>
+    <script>
+        var connection;
+        //Requisição de abertura
+        var openRequest = window.indexedDB.open('aluraframe',3);
+        //Cria ou altera um banco ja existente
+        openRequest.onupgradeneeded = e/*Evento*/=>{
+            console.log("Cria ou alterar banco ja existente");
+            let minhaConnection = e.target.result;
+            //Verificar se existe um object store dentro do indexDB aluraframe
+            if(minhaConnection.objectStoreNames.contains('negociacoes')){
+                //deletando a object store("tabela");
+                minhaConnection.deleteObjectStore('negociacoes');
+            }
+            //Criando a object store("tabela"); com uma coluna autoIncrement(primary key);
+            minhaConnection.createObjectStore('negociacoes', {autoIncrement: true});
+        }
+        openRequest.onsuccess = e=>{
+            console.log("Conexão obtida com sucesso");
+            //Atribuindo para uma variavel a connection
+            connection = e.target.result;
+        }
+        openRequest = e=>{
+            console.log(e.target.error);
+        }
+
+        function adiciona(){
+            //criando uma transação para ler e escrever em um object store
+            let transaction = connection.transaction(['negociacoes'], 'readwrite');
+            //Pegar uma ObjectStore com a transação
+            let store = transaction.objectStore('negociacoes');
+            
+            let negociacao = new Negociacao(new Date(), 1, 200);
+
+            //Gravar um objeto dentro da object store(Adicionar), devolve uma requesição
+            let request = store.add(negociacao);
+
+            //se realmente gravou
+            request.onsuccess = e =>{
+                console.log('negociação incluida com sucesso');
+            }
+            //se ocorreu um erro
+            request.onerror = e=>{
+                console.log('Não foi possivel incluir a negociação');
+            }
+        }
+
+        function listatodos(){
+             //criando uma transação para ler e escrever em um object store
+             let transaction = connection.transaction(['negociacoes'], 'readwrite');
+            //Pegar uma ObjectStore com a transação
+            let store = transaction.objectStore('negociacoes');
+            
+            //Ponteiro para a primeira negociação, como ele podemos navegar pela lista de negociação
+            let cursor = store.openCursor();
+            //lista de negociacoes
+            var negociacoes = [];
+
+            cursor.onsuccess = e=>{
+                //pegando o ponteiro
+               let atual = e.target.result;
+               //se houver ponteiro selecionado
+               if(atual){
+                   //capturando o dado em que o ponteiro esta apontando
+                   var dado = atual.value;
+                   //adicionando em um array novas negociação baseada no ponteiro que esta selecionado
+                   negociacoes.push(new Negociacao(dado._data, dado._quantidade, dado._valor));
+                   //Continuar percorrendo o ponteiro
+                   atual.continue();
+               }else{
+                   console.log(negociacoes);
+               }
+            };
+
+            cursor.onerror = e=>{
+                //Exibir uma mensagem menos verbosa com o .name
+                console.log(e.tagert.error.name);
+            };
+        }
+
+       
+    </script>
+</body>
+</html>
